@@ -73,8 +73,8 @@ Panel {
   }
 
   function close() {
-    setCenterHoverRevealSuppressed(false)
     root.controller.hide()
+    setCenterHoverRevealSuppressed(false)
   }
 
   function toggle() {
@@ -89,8 +89,8 @@ Panel {
   }
 
   function setCenterHoverRevealSuppressed(value) {
-    if (root.bar && "centerHoverRevealSuppressed" in root.bar)
-      root.bar.centerHoverRevealSuppressed = value
+    if (root.bar && typeof root.bar.setCenterHoverRevealSuppressed === "function")
+      root.bar.setCenterHoverRevealSuppressed(value)
   }
 
   function persistSettings(values) {
@@ -214,6 +214,27 @@ Panel {
     return root.readings[index]
   }
 
+  component BodyText: Column {
+    id: bodyText
+    property string text: ""
+    spacing: Style.space(6)
+    topPadding: Style.space(8)
+
+    Repeater {
+      model: bodyText.text.split("\n").map(function(p) { return p.trim() }).filter(function(p) { return p !== "" })
+
+      SelectableText {
+        required property string modelData
+        width: bodyText.width
+        text: modelData
+        color: root.contentForeground
+        font.family: root.contentFontFamily
+        font.pixelSize: Style.font.body
+        horizontalAlignment: root.contentAlign
+      }
+    }
+  }
+
   Process {
     id: fetchProc
     running: false
@@ -296,7 +317,7 @@ Panel {
             font.bold: true
             wrapMode: Text.WordWrap
             textFormat: Text.PlainText
-            horizontalAlignment: root.choosingLanguage ? Text.AlignHCenter : root.contentAlign
+            horizontalAlignment: Text.AlignHCenter
           }
 
           Text {
@@ -616,7 +637,7 @@ Panel {
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.body
                 font.bold: true
-                horizontalAlignment: root.contentAlign
+                horizontalAlignment: Text.AlignHCenter
               }
 
               SelectableText {
@@ -626,16 +647,12 @@ Panel {
                 color: Qt.darker(root.contentForeground, 1.45)
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.bodySmall
-                horizontalAlignment: root.contentAlign
+                horizontalAlignment: Text.AlignHCenter
               }
 
-              SelectableText {
+              BodyText {
                 width: parent.width
                 text: entry.text
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.body
-                horizontalAlignment: root.contentAlign
               }
             }
           }
@@ -667,7 +684,7 @@ Panel {
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.body
               font.bold: true
-              horizontalAlignment: root.contentAlign
+              horizontalAlignment: Text.AlignHCenter
             }
 
             SelectableText {
@@ -677,17 +694,13 @@ Panel {
               color: Qt.darker(root.contentForeground, 1.45)
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.bodySmall
-              horizontalAlignment: root.contentAlign
+              horizontalAlignment: Text.AlignHCenter
             }
 
-            SelectableText {
+            BodyText {
               width: parent.width
               visible: root.gospel.text !== ""
               text: root.gospel.text
-              color: root.contentForeground
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.body
-              horizontalAlignment: root.contentAlign
             }
 
             Text {
@@ -716,7 +729,7 @@ Panel {
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.body
               font.bold: true
-              horizontalAlignment: root.contentAlign
+              horizontalAlignment: Text.AlignHCenter
             }
 
             SelectableText {
@@ -726,17 +739,13 @@ Panel {
               color: Qt.darker(root.contentForeground, 1.45)
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.bodySmall
-              horizontalAlignment: root.contentAlign
+              horizontalAlignment: Text.AlignHCenter
             }
 
-            SelectableText {
+            BodyText {
               width: parent.width
               visible: root.commentary.available
               text: root.commentary.text
-              color: root.contentForeground
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.body
-              horizontalAlignment: root.contentAlign
             }
 
             Text {
