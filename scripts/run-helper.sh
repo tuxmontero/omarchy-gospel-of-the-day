@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 HELPER="$SCRIPT_DIR/evangelizo.py"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/gospel-of-the-day"
-ALLOWED_LANGS="SP AM FR IT DE PT AR PL NL GR MG"
+ALLOWED_LANGS="SP AM FR IT DE PT AR PL NL GR MG TRA TRS TRF TRD ARM BYA COA MAA SYA"
 
 lang=""
 date_arg=""

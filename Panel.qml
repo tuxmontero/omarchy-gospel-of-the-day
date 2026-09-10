@@ -20,7 +20,7 @@ Panel {
 
   readonly property string configuredLanguage: Model.normalizeLanguage(setting("language", ""))
   readonly property bool hasLanguage: configuredLanguage !== ""
-  readonly property var languages: Model.languageList()
+  readonly property var configuredRite: Model.riteForLanguage(configuredLanguage)
   readonly property bool rtl: Model.isRtlLanguage(configuredLanguage)
   readonly property int contentAlign: rtl ? Text.AlignRight : Text.AlignLeft
 
@@ -28,8 +28,13 @@ Panel {
   readonly property int rowHeight: Style.space(36)
   readonly property int tabHeight: Style.space(32)
 
-  property bool choosingLanguage: true
-  property int languageCursor: 0
+  property string pickerMode: "rite"
+  property string pickerRite: ""
+  property int pickerCursor: 0
+  readonly property bool choosing: pickerMode !== ""
+  readonly property var pickerModel: pickerMode === "language"
+    ? Model.languagesForRite(pickerRite)
+    : Model.riteList()
   property int activeTab: 1
   property var day: null
   property bool loading: false
@@ -63,8 +68,8 @@ Panel {
   function open() {
     root.today = new Date()
     root.viewDate = root.today
-    root.choosingLanguage = !root.hasLanguage
-    root.languageCursor = Model.languageIndex(root.configuredLanguage)
+    root.pickerMode = root.hasLanguage ? "" : "rite"
+    root.pickerCursor = 0
     if (root.hasLanguage) root.loadDay()
     root.controller.show()
     Qt.callLater(function() {
@@ -104,16 +109,30 @@ Panel {
       root.bar.shell.updateEntryInline(root.moduleName, entry)
   }
 
-  function showLanguagePicker() {
-    root.languageCursor = Model.languageIndex(root.configuredLanguage)
-    root.choosingLanguage = true
+  function showRitePicker() {
+    root.pickerCursor = Model.riteIndex(root.configuredRite.code)
+    root.pickerMode = "rite"
   }
 
-  function moveLanguageCursor(delta) {
-    var next = root.languageCursor + delta
+  function showLanguagePicker(riteCode) {
+    root.pickerRite = riteCode || root.configuredRite.code
+    root.pickerCursor = Model.languageIndexInRite(root.pickerRite, root.configuredLanguage)
+    root.pickerMode = "language"
+  }
+
+  function movePickerCursor(delta) {
+    var next = root.pickerCursor + delta
     if (next < 0) next = 0
-    if (next > root.languages.length - 1) next = root.languages.length - 1
-    root.languageCursor = next
+    if (next > root.pickerModel.length - 1) next = root.pickerModel.length - 1
+    root.pickerCursor = next
+  }
+
+  function selectRite(riteCode) {
+    var rite = Model.riteEntry(riteCode)
+    if (rite.languages.length === 1) return root.selectLanguage(rite.languages[0].code)
+    var match = root.hasLanguage ? Model.matchLanguageInRite(rite.code, root.configuredLanguage) : ""
+    if (match !== "") return root.selectLanguage(match)
+    root.showLanguagePicker(rite.code)
   }
 
   function selectLanguage(code) {
@@ -121,14 +140,16 @@ Panel {
     if (normalized === "") return
     var changed = normalized !== root.configuredLanguage
     if (changed) persistSettings({ language: normalized })
-    root.choosingLanguage = false
+    root.pickerMode = ""
     if (changed) root.day = null
     root.loadDay(normalized)
   }
 
-  function selectLanguageAtCursor() {
-    if (root.languageCursor < 0 || root.languageCursor >= root.languages.length) return
-    root.selectLanguage(root.languages[root.languageCursor].code)
+  function selectAtCursor() {
+    if (root.pickerCursor < 0 || root.pickerCursor >= root.pickerModel.length) return
+    var entry = root.pickerModel[root.pickerCursor]
+    if (root.pickerMode === "rite") root.selectRite(entry.code)
+    else root.selectLanguage(entry.code)
   }
 
   function setTab(index) {
@@ -182,7 +203,7 @@ Panel {
   }
 
   function copyVisible() {
-    if (root.choosingLanguage || !root.day) return
+    if (root.choosing || !root.day) return
     var text = Model.copyText(root.day, root.activeTab)
     if (text === "") return
     Quickshell.execDetached(["wl-copy", "--", text])
@@ -202,10 +223,17 @@ Panel {
     root.lastError = String(fetchErr.text || "").replace(/^\s+|\s+$/g, "") || "Could not load readings"
   }
 
-  function languageAt(index) {
-    if (!root.languages || index < 0 || index >= root.languages.length)
-      return { code: "", name: "", rtl: false }
-    return root.languages[index]
+  function pickerEntryAt(index) {
+    if (!root.pickerModel || index < 0 || index >= root.pickerModel.length)
+      return { code: "", name: "" }
+    return root.pickerModel[index]
+  }
+
+  function pickerEntryDetail(entry) {
+    if (root.pickerMode !== "rite") return String(entry.code || "")
+    var langs = entry.languages || []
+    if (langs.length === 1) return langs[0].name
+    return langs.length + " languages"
   }
 
   function readingAt(index) {
@@ -259,15 +287,15 @@ Panel {
       id: keyCatcher
       anchors.fill: parent
       onMoveRequested: function(dx, dy) {
-        if (root.choosingLanguage) {
-          if (dy !== 0) root.moveLanguageCursor(dy)
+        if (root.choosing) {
+          if (dy !== 0) root.movePickerCursor(dy)
           return
         }
         if (dy !== 0) root.scrollContent(dy)
         else if (dx !== 0) root.showLanguagePicker()
       }
       onActivateRequested: {
-        if (root.choosingLanguage) root.selectLanguageAtCursor()
+        if (root.choosing) root.selectAtCursor()
       }
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
@@ -276,10 +304,11 @@ Panel {
         else if (t === "2") root.setTab(1)
         else if (t === "3") root.setTab(2)
         else if (t === "l" || t === "L") root.showLanguagePicker()
+        else if (t === "r" || t === "R") root.showRitePicker()
         else if (t === "[" ) root.moveDay(-1)
         else if (t === "]" ) root.moveDay(1)
         else if (t === "t" || t === "T") root.goToToday()
-        else if (t === "r" || t === "R") root.refresh()
+        else if (t === "u" || t === "U") root.refresh()
         else if (t === "c" || t === "C") root.copyVisible()
       }
 
@@ -310,7 +339,9 @@ Panel {
           Text {
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.choosingLanguage ? "Choose a language" : (root.liturgicalTitle || "Gospel of the Day")
+            text: root.pickerMode === "rite" ? "Choose a rite"
+              : root.pickerMode === "language" ? "Choose a language"
+              : (root.liturgicalTitle || "Gospel of the Day")
             color: root.contentForeground
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.title
@@ -323,8 +354,7 @@ Panel {
           Text {
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !root.choosingLanguage && root.saint !== ""
-            height: visible ? implicitHeight : 0
+            visible: !root.choosing && root.saint !== ""
             text: root.saint
             color: Qt.darker(root.contentForeground, 1.35)
             font.family: root.contentFontFamily
@@ -389,7 +419,6 @@ Panel {
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.hasLanguage && !root.viewingToday
-            height: visible ? implicitHeight : 0
             text: "Today"
             color: Style.hoverStateColor(root.contentForeground, Color.accent)
             font.family: root.contentFontFamily
@@ -405,12 +434,54 @@ Panel {
           }
 
           Item {
+            visible: root.hasLanguage
             width: root.innerWidth
-            height: root.rowHeight
+            height: visible ? root.rowHeight : 0
             anchors.horizontalCenter: parent.horizontalCenter
 
+            readonly property real chipWidth: ((copyButton.visible ? copyButton.x : refreshButton.x) - Style.space(8) * 2) / 2
+
             Rectangle {
+              id: riteChip
               anchors.left: parent.left
+              width: parent.chipWidth
+              height: parent.height
+              radius: Style.cornerRadius
+              color: riteChipMouse.containsMouse
+                ? Style.hoverFillFor(root.contentForeground, Color.accent)
+                : "transparent"
+              border.width: Style.spacing.hairline
+              border.color: Style.normalBorderFor(root.contentForeground, Color.accent)
+
+              Text {
+                anchors.fill: parent
+                anchors.leftMargin: Style.space(8)
+                anchors.rightMargin: Style.space(8)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                text: root.configuredRite.short
+                color: root.contentForeground
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.body
+              }
+
+              MouseArea {
+                id: riteChipMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  if (root.pickerMode === "rite") root.pickerMode = ""
+                  else root.showRitePicker()
+                }
+              }
+            }
+
+            Rectangle {
+              id: langChip
+              anchors.left: riteChip.right
+              anchors.leftMargin: Style.space(8)
               anchors.right: copyButton.visible ? copyButton.left : refreshButton.left
               anchors.rightMargin: Style.space(8)
               height: parent.height
@@ -422,8 +493,13 @@ Panel {
               border.color: Style.normalBorderFor(root.contentForeground, Color.accent)
 
               Text {
-                anchors.centerIn: parent
-                text: root.hasLanguage ? Model.languageLabel(root.configuredLanguage) : "Choose a language"
+                anchors.fill: parent
+                anchors.leftMargin: Style.space(8)
+                anchors.rightMargin: Style.space(8)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                text: Model.languageLabel(root.configuredLanguage)
                 color: root.contentForeground
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.body
@@ -435,7 +511,7 @@ Panel {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                  if (root.choosingLanguage && root.hasLanguage) root.choosingLanguage = false
+                  if (root.pickerMode === "language") root.pickerMode = ""
                   else root.showLanguagePicker()
                 }
               }
@@ -443,7 +519,7 @@ Panel {
 
             PanelActionButton {
               id: copyButton
-              visible: root.hasLanguage && !root.choosingLanguage && !!root.day
+              visible: root.hasLanguage && !root.choosing && !!root.day
               anchors.right: refreshButton.left
               anchors.rightMargin: Style.space(4)
               anchors.verticalCenter: parent.verticalCenter
@@ -470,23 +546,22 @@ Panel {
           }
 
           Column {
-            visible: root.choosingLanguage
+            visible: root.choosing
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Style.space(4)
-            height: visible ? implicitHeight : 0
 
             Repeater {
-              model: root.languages ? root.languages.length : 0
+              model: root.choosing ? root.pickerModel.length : 0
 
               Rectangle {
                 required property int index
-                readonly property var entry: root.languageAt(index)
+                readonly property var entry: root.pickerEntryAt(index)
 
                 width: root.innerWidth
                 height: root.rowHeight
                 radius: Style.cornerRadius
-                color: (root.languageCursor === index || langMouse.containsMouse)
+                color: (root.pickerCursor === index || pickerMouse.containsMouse)
                   ? Style.hoverFillFor(root.contentForeground, Color.accent)
                   : "transparent"
 
@@ -495,7 +570,7 @@ Panel {
                   anchors.leftMargin: Style.space(12)
                   anchors.verticalCenter: parent.verticalCenter
                   text: entry.name
-                  color: root.languageCursor === index
+                  color: root.pickerCursor === index
                     ? Style.hoverStateColor(root.contentForeground, Color.accent)
                     : root.contentForeground
                   font.family: root.contentFontFamily
@@ -506,7 +581,7 @@ Panel {
                   anchors.right: parent.right
                   anchors.rightMargin: Style.space(12)
                   anchors.verticalCenter: parent.verticalCenter
-                  text: entry.code
+                  text: root.pickerEntryDetail(entry)
                   color: Qt.darker(root.contentForeground, 1.5)
                   font.family: root.contentFontFamily
                   font.pixelSize: Style.font.caption
@@ -514,12 +589,15 @@ Panel {
                 }
 
                 MouseArea {
-                  id: langMouse
+                  id: pickerMouse
                   anchors.fill: parent
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
-                  onEntered: root.languageCursor = index
-                  onClicked: root.selectLanguage(entry.code)
+                  onEntered: root.pickerCursor = index
+                  onClicked: {
+                    root.pickerCursor = index
+                    root.selectAtCursor()
+                  }
                 }
               }
             }
@@ -527,7 +605,7 @@ Panel {
 
           Row {
             id: tabRow
-            visible: !root.choosingLanguage
+            visible: !root.choosing
             width: root.innerWidth
             height: visible ? root.tabHeight : 0
             anchors.horizontalCenter: parent.horizontalCenter
@@ -575,8 +653,7 @@ Panel {
           Text {
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !root.choosingLanguage && root.loading && !root.day
-            height: visible ? implicitHeight : 0
+            visible: !root.choosing && root.loading && !root.day
             text: "Loading…"
             color: Qt.darker(root.contentForeground, 1.4)
             font.family: root.contentFontFamily
@@ -585,11 +662,10 @@ Panel {
           }
 
           Column {
-            visible: !root.choosingLanguage && root.lastError !== ""
+            visible: !root.choosing && root.lastError !== ""
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Style.space(8)
-            height: visible ? implicitHeight : 0
 
             Text {
               width: parent.width
@@ -620,7 +696,7 @@ Panel {
           }
 
           Repeater {
-            model: (!root.choosingLanguage && root.activeTab === 0) ? root.readings.length : 0
+            model: (!root.choosing && root.activeTab === 0) ? root.readings.length : 0
 
             Column {
               required property int index
@@ -660,8 +736,7 @@ Panel {
           Text {
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !root.choosingLanguage && root.activeTab === 0 && !root.loading && root.day && root.readings.length === 0
-            height: visible ? implicitHeight : 0
+            visible: !root.choosing && root.activeTab === 0 && !root.loading && root.day && root.readings.length === 0
             text: "No readings today"
             color: Qt.darker(root.contentForeground, 1.4)
             font.family: root.contentFontFamily
@@ -670,11 +745,10 @@ Panel {
           }
 
           Column {
-            visible: !root.choosingLanguage && root.activeTab === 1 && !root.loading
+            visible: !root.choosing && root.activeTab === 1 && !root.loading
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Style.space(6)
-            height: visible ? implicitHeight : 0
 
             SelectableText {
               width: parent.width
@@ -715,11 +789,10 @@ Panel {
           }
 
           Column {
-            visible: !root.choosingLanguage && root.activeTab === 2 && !root.loading
+            visible: !root.choosing && root.activeTab === 2 && !root.loading
             width: root.innerWidth
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Style.space(8)
-            height: visible ? implicitHeight : 0
 
             SelectableText {
               width: parent.width

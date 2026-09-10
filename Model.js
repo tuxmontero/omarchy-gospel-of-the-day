@@ -1,19 +1,108 @@
-var LANGUAGES = [
-  { code: "SP", name: "Español", rtl: false },
-  { code: "AM", name: "English (US)", rtl: false },
-  { code: "FR", name: "Français", rtl: false },
-  { code: "IT", name: "Italiano", rtl: false },
-  { code: "DE", name: "Deutsch", rtl: false },
-  { code: "PT", name: "Português", rtl: false },
-  { code: "AR", name: "العربية", rtl: true },
-  { code: "PL", name: "Polski", rtl: false },
-  { code: "NL", name: "Nederlands", rtl: false },
-  { code: "GR", name: "Ελληνικά", rtl: false },
-  { code: "MG", name: "Malagasy", rtl: false }
+var RITES = [
+  {
+    code: "ordinary",
+    name: "Roman · Ordinary Form",
+    short: "Ordinary",
+    languages: [
+      { code: "SP", name: "Español", rtl: false },
+      { code: "AM", name: "English (US)", rtl: false },
+      { code: "FR", name: "Français", rtl: false },
+      { code: "IT", name: "Italiano", rtl: false },
+      { code: "DE", name: "Deutsch", rtl: false },
+      { code: "PT", name: "Português", rtl: false },
+      { code: "AR", name: "العربية", rtl: true },
+      { code: "PL", name: "Polski", rtl: false },
+      { code: "NL", name: "Nederlands", rtl: false },
+      { code: "GR", name: "Ελληνικά", rtl: false },
+      { code: "MG", name: "Malagasy", rtl: false }
+    ]
+  },
+  {
+    code: "extraordinary",
+    name: "Roman · 1962 Missal",
+    short: "1962 Missal",
+    languages: [
+      { code: "TRA", name: "English (US)", rtl: false },
+      { code: "TRS", name: "Español", rtl: false },
+      { code: "TRF", name: "Français", rtl: false },
+      { code: "TRD", name: "Deutsch", rtl: false }
+    ]
+  },
+  { code: "armenian", name: "Armenian Rite", short: "Armenian", languages: [{ code: "ARM", name: "Հայերեն", rtl: false }] },
+  { code: "byzantine", name: "Byzantine Rite", short: "Byzantine", languages: [{ code: "BYA", name: "العربية", rtl: true }] },
+  { code: "coptic", name: "Coptic Rite", short: "Coptic", languages: [{ code: "COA", name: "العربية", rtl: true }] },
+  { code: "maronite", name: "Maronite Rite", short: "Maronite", languages: [{ code: "MAA", name: "العربية", rtl: true }] },
+  { code: "syriac", name: "Syriac Rite", short: "Syriac", languages: [{ code: "SYA", name: "العربية", rtl: true }] }
 ]
+
+var LANGUAGES = []
+for (var _r = 0; _r < RITES.length; _r++)
+  for (var _l = 0; _l < RITES[_r].languages.length; _l++)
+    LANGUAGES.push(RITES[_r].languages[_l])
 
 function languageList() {
   return LANGUAGES.slice()
+}
+
+function riteList() {
+  return RITES.slice()
+}
+
+function normalizeRite(value) {
+  var text = String(value === undefined || value === null ? "" : value).replace(/^\s+|\s+$/g, "").toLowerCase()
+  for (var i = 0; i < RITES.length; i++)
+    if (RITES[i].code === text) return RITES[i].code
+  return ""
+}
+
+function riteEntry(value) {
+  var code = normalizeRite(value)
+  for (var i = 0; i < RITES.length; i++)
+    if (RITES[i].code === code) return RITES[i]
+  return RITES[0]
+}
+
+function riteForLanguage(value) {
+  var code = normalizeLanguage(value)
+  for (var i = 0; i < RITES.length; i++)
+    for (var j = 0; j < RITES[i].languages.length; j++)
+      if (RITES[i].languages[j].code === code) return RITES[i]
+  return RITES[0]
+}
+
+function riteIndex(value) {
+  var code = normalizeRite(value)
+  for (var i = 0; i < RITES.length; i++)
+    if (RITES[i].code === code) return i
+  return 0
+}
+
+function languagesForRite(value) {
+  return riteEntry(value).languages.slice()
+}
+
+function languageIndexInRite(riteCode, langCode) {
+  var langs = riteEntry(riteCode).languages
+  var code = normalizeLanguage(langCode)
+  var name = languageLabel(code)
+  for (var i = 0; i < langs.length; i++)
+    if (langs[i].code === code) return i
+  if (name !== "")
+    for (var j = 0; j < langs.length; j++)
+      if (langs[j].name === name) return j
+  return 0
+}
+
+function matchLanguageInRite(riteCode, langCode) {
+  var langs = riteEntry(riteCode).languages
+  var code = normalizeLanguage(langCode)
+  var name = languageLabel(code)
+  for (var i = 0; i < langs.length; i++)
+    if (langs[i].code === code) return langs[i].code
+  if (name !== "")
+    for (var j = 0; j < langs.length; j++)
+      if (langs[j].name === name) return langs[j].code
+  return ""
 }
 
 function normalizeLanguage(value) {
@@ -235,8 +324,17 @@ function copyText(day, tabIndex) {
 if (typeof module !== "undefined") {
   module.exports = {
     LANGUAGES: LANGUAGES,
+    RITES: RITES,
     TABS: TABS,
     languageList: languageList,
+    riteList: riteList,
+    normalizeRite: normalizeRite,
+    riteEntry: riteEntry,
+    riteForLanguage: riteForLanguage,
+    riteIndex: riteIndex,
+    languagesForRite: languagesForRite,
+    languageIndexInRite: languageIndexInRite,
+    matchLanguageInRite: matchLanguageInRite,
     normalizeLanguage: normalizeLanguage,
     languageEntry: languageEntry,
     languageLabel: languageLabel,

@@ -16,7 +16,11 @@ import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
 
-ALLOWED_LANGS = ("SP", "AM", "FR", "IT", "DE", "PT", "AR", "PL", "NL", "GR", "MG")
+ALLOWED_LANGS = (
+    "SP", "AM", "FR", "IT", "DE", "PT", "AR", "PL", "NL", "GR", "MG",
+    "TRA", "TRS", "TRF", "TRD",
+    "ARM", "BYA", "COA", "MAA", "SYA",
+)
 HOST = "feed.evangelizo.org"
 READER_PATH = "/v2/reader.php"
 TIMEOUT_SEC = 15

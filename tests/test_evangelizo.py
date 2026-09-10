@@ -126,7 +126,7 @@ class ParseTests(unittest.TestCase):
 
 class SecurityTests(unittest.TestCase):
     def test_invalid_language(self):
-        self.assertEqual(ev.normalize_lang("TRA"), "")
+        self.assertEqual(ev.normalize_lang("TRA"), "TRA")
         self.assertEqual(ev.normalize_lang("xx"), "")
         self.assertEqual(ev.normalize_lang("sp"), "SP")
         for lang in ev.ALLOWED_LANGS:

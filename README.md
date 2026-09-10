@@ -12,12 +12,13 @@ Readings come from **[Evangelizo.org](https://www.evangelizo.org)** (Evangelio d
 - Liturgical title plus the saint or celebration of the day
 - Readings, Gospel, and Commentary as separate tabs
 - Select and copy the readings, or copy the open tab
-- Roman Ordinary Calendar languages: Español, English (US), Français, Italiano, Deutsch, Português, العربية, Polski, Nederlands, Ελληνικά, Malagasy
-- Arabic text is shown right-to-left
+- Several Catholic calendars: Roman Ordinary Form, Roman 1962 Missal (Extraordinary Form), Armenian, Byzantine, Coptic, Maronite, and Syriac
+- Roman Ordinary Calendar languages: Español, English (US), Français, Italiano, Deutsch, Português, العربية, Polski, Nederlands, Ελληνικά, Malagasy; the 1962 Missal in English, Español, Français, and Deutsch
+- Arabic and other right-to-left text is shown right-to-left
 - Previous / next day (up to 30 days) and a Today button
-- Language chip always visible
+- Rite and language chips always visible
 - Local cache for the current day; refresh when you ask for it
-- No network until a language is chosen
+- No network until a rite and language are chosen
 
 ## Install
 
@@ -33,11 +34,12 @@ Or add the git repository with `omarchy plugin add <git-url>` and enable it when
 
 ## Use
 
-Click ✝ to open the panel. The first time, pick a language. After that:
+Click ✝ to open the panel. The first time, pick a rite, then a language (rites with a single language skip that step). Switching rite keeps your language when the new rite offers it. After that:
 
 | Input | Action |
 | --- | --- |
 | Click ✝ | Open or close |
+| Rite chip | Change rite |
 | Language chip | Change language |
 | ← → | Previous or next day |
 | Today | Jump to today |
@@ -46,8 +48,9 @@ Click ✝ to open the panel. The first time, pick a language. After that:
 | Middle-click ✝ | Refresh |
 | `1` `2` `3` | Readings, Gospel, Commentary |
 | `j` / `k` | Scroll |
-| `r` | Refresh |
+| `u` | Refresh |
 | `l` | Language list |
+| `r` | Rite (calendar) list |
 | `[` `]` | Previous or next day |
 | `t` | Today |
 | Escape | Close |
