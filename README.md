@@ -41,18 +41,17 @@ Click ✝ to open the panel. The first time, pick a rite, then a language (rites
 | Click ✝ | Open or close |
 | Rite chip | Change rite |
 | Language chip | Change language |
-| ← → | Previous or next day |
 | Today | Jump to today |
 | Refresh | Fetch again, skip cache |
 | Copy / `c` | Copy the open tab |
 | Middle-click ✝ | Refresh |
 | `1` `2` `3` | Readings, Gospel, Commentary |
-| `j` / `k` | Scroll |
-| `u` | Refresh |
-| `l` | Language list |
+| `j` `k` / ↑ ↓ | Scroll, or move the cursor in a picker |
+| `l` `h` / ← → | Language list |
 | `r` | Rite (calendar) list |
 | `[` `]` | Previous or next day |
 | `t` | Today |
+| `u` | Refresh |
 | Escape | Close |
 
 Source line in the panel: **Evangelizo.org**.
